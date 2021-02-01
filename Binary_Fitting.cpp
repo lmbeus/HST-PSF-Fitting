@@ -211,6 +211,7 @@ double BinaryFit(xt::xarray<double> model_primary, xt::xarray<double> model_seco
 	chi_array.reserve(scale_length);
 	xt::xarray<double> PSF_sum = PSF1 * relative_flux + PSF2 * (1 - relative_flux);
 	double scale;
+	
 	for (int i = 0; i < scale_length; ++i) {
 		scale = scale_array(i);
 		xt::xarray<double> scale_PSF = PSF_sum * scale * base;
@@ -257,8 +258,8 @@ double SecondaryBinaryFit(xt::xarray<double> primary, xt::xarray<double> seconda
 	chi_array.reserve(scale_length);
 	
 	xt::xarray<double> relative_PSF2 = w2 * (image_psf - PSF1 * flux * relative_flux);
-	for (int i = 0; i < scale_length; ++i)
-	{
+	
+	for (int i = 0; i < scale_length; ++i) {
 		double scale = scale_array(i);
 		xt::xarray<double> scale_PSF2 =  w2 * PSF2 * scale * flux;
 		flux_array.push_back(scale * flux);
@@ -272,6 +273,7 @@ double SecondaryBinaryFit(xt::xarray<double> primary, xt::xarray<double> seconda
 	double min_chi = xt::amin(chi_squareds)(0);
 	int min_chi_index = 0;
 	int chi_length = chi_squareds.shape()[0];
+	
 	for (int i = 0; i < chi_length ; ++i) {
 		if (chi_squareds(i) == min_chi) {
 			min_chi_index = i;
@@ -310,6 +312,7 @@ double RelativeFluxes(xt::xarray<double> PSF_1, xt::xarray<int> coordinates_1, x
 	chi_array.reserve(scale_length);
 	
 	auto rPSF = w * (image_psf - PSF2 * flux);
+	#pragma omp parallel for
 	for (int i = 0; i < scale_length; ++i) {
 		double scale = scale_array(i);
 		xt::xarray<double> scale_PSF = w * PSF1 * scale * base;
@@ -324,6 +327,7 @@ double RelativeFluxes(xt::xarray<double> PSF_1, xt::xarray<int> coordinates_1, x
 	double min_chi = xt::amin(chi_squareds)(0);
 	int min_chi_index = 0;
 	int chi_length = chi_squareds.shape()[0];
+	
 	for (int i = 0; i < chi_length ; ++i) {
 		if (chi_squareds(i) == min_chi) {
 			min_chi_index = i;
@@ -343,6 +347,7 @@ int main()
 
 	int array_length = 100;
 	xt::xarray<xt::xarray<double>> array_of_PSFs = xt::zeros<xt::xarray<double>>({array_length});
+    	#pragma omp parallel for
     	for (int i = 1; i <= array_length; ++i) {
     		string filename = " PSFmodel_" + to_string(i) + ".npy";
     		array_of_PSFs(i - 1) = xt::load_npy<double>(filename);
@@ -365,6 +370,7 @@ int main()
     	
     	//do the binary fit
     	cout << "Beginning Binary Fit" << endl;
+    	
     	for (int i = 0; i < coordinates.shape()[0]; ++i) {
     		xt::xarray<int> secondary = xt::row(coordinates, i);
     		secondary_coordinates(0) = secondary(0) - center(0) + 2;

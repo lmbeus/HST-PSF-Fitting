@@ -17,7 +17,7 @@
 using namespace std;
 
 //Get the index of the model with the smallest chi-squared value
-int GetMinChiSquared(xt::xarray<xt::xarray<double>> array_of_PSFs, xt::xarray<double> image_psf, double flux, xt::xarray<double> weights)
+int GetMinChiSquared(xt::xarray<xt::xarray<double>> array_of_PSFs, xt::xarray<double> image_psf, double flux, xt::xarray<double> sqrt_weights)
 {
 	xt::xarray<double> chi_array = xt::zeros<xt::xarray<double>>({array_of_PSFs.shape()[0]});
 	int cx = (int) ((array_of_PSFs(0).shape()[1] - 1) * .5);
@@ -45,7 +45,7 @@ int GetMinChiSquared(xt::xarray<xt::xarray<double>> array_of_PSFs, xt::xarray<do
 }
 
 //refine the flux and the chi squared values
-xt::xarray<double> FitSinglePSF(xt::xarray<double> binned_model_psf,xt::xarray<double> image_psf, double base, xt::xarray<double> weights ) 
+xt::xarray<double> FitSinglePSF(xt::xarray<double> binned_model_psf,xt::xarray<double> image_psf, double base, xt::xarray<double> weights) 
 {
 	int cx = (int) ((binned_model_psf.shape()[1] - 1) * .5);
 	int cy = (int) ((binned_model_psf.shape()[0] - 1) * .5);
@@ -91,7 +91,15 @@ int main()
     	}
 	
 	double base = xt::sum(image_psf,{0,1}, xt::evaluation_strategy::immediate)(0);
-	auto weights = xt::sqrt(xt::abs(image_psf));
+	//auto weights = xt::sqrt(xt::abs(image_psf));
+	xt::xarray<double> weights
+	{{0,0,0,0,0},
+	 {0,1,1,1,0},
+	 {0,1,1,1,0},
+	 {0,1,1,1,0},
+	 {0,0,0,0,0}}; 
+	 
+	auto sqrt_weights = xt::sqrt(xt::abs(image_psf));
 	double flux = base * 1;
 	int iteration = 0;
 	double comp = 0.0;
@@ -138,6 +146,7 @@ int main()
 		auto pre_residual = xt::abs(image_psf - PSF_sum);
 		auto residual = xt::sum(weights * pre_residual, xt::evaluation_strategy::immediate)(0);
 		auto residual_error = residual / xt::sum(weights, xt::evaluation_strategy::immediate)(0);
+		
 		cout << "residual error: " << residual_error << endl;
 		//Need: ITeration, PSF #, flux, min_chi_val
 		iteration_vector.push_back(iteration);
