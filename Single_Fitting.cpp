@@ -17,7 +17,7 @@
 using namespace std;
 
 //Get the index of the model with the smallest chi-squared value
-int GetMinChiSquared(xt::xarray<xt::xarray<double>> array_of_PSFs, xt::xarray<double> image_psf, double flux, xt::xarray<double> sqrt_weights)
+int GetMinChiSquared(xt::xarray<xt::xarray<double>> array_of_PSFs, xt::xarray<double> image_psf, double flux, xt::xarray<double> weights)
 {
 	xt::xarray<double> chi_array = xt::zeros<xt::xarray<double>>({array_of_PSFs.shape()[0]});
 	int cx = (int) ((array_of_PSFs(0).shape()[1] - 1) * .5);
@@ -120,7 +120,7 @@ int main()
 	
 	while (abs(comp - flux) > .000001 && iteration < 10) {
 		comp = flux;
-		best_PSF = GetMinChiSquared(array_of_PSFs, image_psf, flux, weights);
+		best_PSF = GetMinChiSquared(array_of_PSFs, image_psf, flux, sqrt_weights);
 		single_fit = FitSinglePSF(array_of_PSFs(best_PSF), image_psf, base, weights);
 		minchi_value = single_fit(0);
 		flux = single_fit(1);
