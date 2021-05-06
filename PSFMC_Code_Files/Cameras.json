@@ -1,0 +1,88 @@
+{
+  "NICMOS1":
+  {
+    "CameraName": "NICMOS1",
+    "Telescope": "HST",
+    "Background":  0.0,
+    "Aperture":  11.5,
+    "PlateScaleX": 0.0431237,
+    "PlateScaleY": 0.0429497,
+    "Filters":
+    {
+     "F090M":{"Fv":2266.0,"apcorr":1.1103},
+     "F095N":{"Fv":2046.4,"apcorr":1.1157},
+     "F097N":{"Fv":2275.3,"apcorr":1.1183},
+     "F108N":{"Fv":1937.0,"apcorr":1.1282},
+     "F110M":{"Fv":1884.3,"apcorr":1.1331},
+     "F110W":{"Fv":1855.8,"apcorr":1.1369},
+     "F113N":{"Fv":1820.9,"apcorr":1.1359},
+     "F140W":{"Fv":1373.3,"apcorr":1.1665},
+     "F145M":{"Fv":1247.2,"apcorr":1.1786},
+     "F160W":{"Fv":1086.0,"apcorr":1.1854},
+     "F164N":{"Fv":1003.0,"apcorr":1.1878},
+     "F165M":{"Fv":1026.8,"apcorr":1.1881},
+     "F166N":{"Fv":1047.6,"apcorr":1.1882},
+     "F170M":{"Fv": 981.8,"apcorr":1.1899},
+     "F187N":{"Fv": 803.9,"apcorr":1.1983},
+     "F190N":{"Fv": 836.4,"apcorr":1.2003}
+    }
+  },
+  "NICMOS2":
+  {
+    "CameraName": "NICMOS2",
+    "Telescope": "HST",
+    "Background":  0.0,
+    "Aperture":  6.5,
+    "PlateScaleX": 0.0758667,
+    "PlateScaleY": 0.0751852,
+    "Filters":
+    {
+     "F110W":{"Fv":1857.7,"apcorr":1.1436},
+     "F160W":{"Fv":1086.9,"apcorr":1.1931},
+     "F165M":{"Fv":1023.9,"apcorr":1.1962},
+     "F171M":{"Fv": 966.3,"apcorr":1.1984},
+     "F180M":{"Fv": 904.1,"apcorr":1.2041},
+     "F187N":{"Fv": 805.3,"apcorr":1.2080},
+     "F187W":{"Fv": 848.7,"apcorr":1.2084},
+     "F190N":{"Fv": 835.6,"apcorr":1.2100},
+     "F204M":{"Fv": 744.3,"apcorr":1.2222},
+     "F205W":{"Fv": 736.0,"apcorr":1.2200},
+     "F207M":{"Fv": 714.1,"apcorr":1.2247},
+     "F212N":{"Fv": 691.0,"apcorr":1.2281},
+     "F215N":{"Fv": 670.5,"apcorr":1.2291},
+     "F216N":{"Fv": 631.1,"apcorr":1.2300},
+     "F222M":{"Fv": 635.1,"apcorr":1.2326},
+     "F237M":{"Fv": 570.9,"apcorr":1.2402}
+    }
+  },
+
+
+  "NICMOS3":
+  {
+    "CameraName": "NICMOS3",
+    "Telescope": "HST",
+    "Background":  0.0,
+    "Aperture":  5.5,
+    "PlateScaleX": 0.201724,
+    "PlateScaleY": 0.200985,
+    "Filters":
+    {
+     "F108N":{"Fv":1945.7,"apcorr":1.0549},
+     "F110W":{"Fv":1863.4,"apcorr":1.0562},
+     "F113N":{"Fv":1824.9,"apcorr":1.0577},
+     "F150W":{"Fv":1218.5,"apcorr":1.0806},
+     "F160W":{"Fv":1085.7,"apcorr":1.0873},
+     "F164N":{"Fv":1003.1,"apcorr":1.0899},
+     "F166N":{"Fv":1048.9,"apcorr":1.0904},
+     "F175W":{"Fv": 967.9,"apcorr":1.0938},
+     "F187N":{"Fv": 803.8,"apcorr":1.1010},
+     "F190N":{"Fv": 835.6,"apcorr":1.1021},
+     "F196N":{"Fv": 786.6,"apcorr":1.1044},
+     "F200N":{"Fv": 768.4,"apcorr":1.1056},
+     "F212N":{"Fv": 690.9,"apcorr":1.1120},
+     "F215N":{"Fv": 670.6,"apcorr":1.1136},
+     "F222M":{"Fv": 635.1,"apcorr":1.1187},
+     "F240M":{"Fv": 559.9,"apcorr":1.1328}
+    }
+  }
+}
