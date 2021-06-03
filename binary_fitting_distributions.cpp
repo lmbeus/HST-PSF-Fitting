@@ -340,9 +340,6 @@ double RelativeFluxes(xt::xarray<double> PSF_1, xt::xarray<int> coordinates_1, x
 //MAIN 
 int main() 
 {
-	//read in the image and model data, and the parameters we set earlier
-	xt::xarray<double> image_psf = xt::load_npy<double>("image_psf.npy");
-
 	int array_length = 100;
 	xt::xarray<xt::xarray<double>> array_of_PSFs = xt::zeros<xt::xarray<double>>({array_length});
     	for (int i = 1; i <= array_length; ++i) {
@@ -356,120 +353,132 @@ int main()
     	
     	xt::xarray<int> primary_coordinates = {2,2};
     	xt::xarray<int> secondary_coordinates = xt::zeros<double>({2});
-    	
-    	//arrays to store the output values
-    	xt::xarray<double> residual_error_array = xt::zeros<double>({coordinates.shape()[0]});
-	xt::xarray<int> best_primary_array = xt::zeros<int>({coordinates.shape()[0]});
-	xt::xarray<double> flux_primary_array = xt::zeros<double>({coordinates.shape()[0]});
-	xt::xarray<int> best_secondary_array = xt::zeros<int>({coordinates.shape()[0]});
-	xt::xarray<double> flux_secondary_array = xt::zeros<double>({coordinates.shape()[0]});
-	xt::xarray<double> flux_sum_array = xt::zeros<double>({coordinates.shape()[0]});
-    	
-    	//do the binary fit
-    	cout << "Beginning Binary Fit" << endl;
+
+    	int size = 100;
     	for (int i = 0; i < coordinates.shape()[0]; ++i) {
-    		xt::xarray<int> secondary = xt::row(coordinates, i);
-    		secondary_coordinates(0) = secondary(0) - center(0) + 2;
-    		secondary_coordinates(1) = secondary(1) - center(1) + 2;
-    		
-    		xt::xarray<xt::xarray<double>> w_array = BinaryBase(primary_coordinates, secondary_coordinates);
-		xt::xarray<double> w = w_array(0);
-		xt::xarray<int> w1 = w_array(1);
-		xt::xarray<int> w2 = w_array(2);
-		auto sqrt_weights = xt::sqrt(xt::abs(image_psf));
+    		xt::xarray<double> residual_error_vector = xt::zeros<double>({size});
+		xt::xarray<int> best_primary_vector = xt::zeros<int>({size});
+		xt::xarray<double> flux_primary_vector = xt::zeros<double>({size});
+		xt::xarray<int> best_secondary_vector = xt::zeros<int>({size});
+		xt::xarray<double> flux_secondary_vector = xt::zeros<double>({size});
+		xt::xarray<double> flux_sum_vector = xt::zeros<double>({size});
 		
-    		int iteration = 0;
-    		int best_primary = 0;
-    		int best_secondary = 0;
-    		double best_RF = 0.0;
-    		double base = xt::sum(w * image_psf, xt::evaluation_strategy::immediate)(0);
-    		
-    		double comp = 0;
-    		double flux = base * 1;
-    		
-    		while (abs(comp - flux) > .000001 && iteration < 10) {
-    			comp = flux;
-    			xt::xarray<int> best_PSFs =  BinaryPSF(array_of_PSFs, secondary_coordinates, image_psf, flux, sqrt_weights);
-    			best_primary = best_PSFs(0);
-    			best_secondary = best_PSFs(1);
+		vector<double> primary_fluxes;
+	    	vector<double> secondary_fluxes;
+		
+		#pragma omp parallel for
+    		for (int n = 0; n < size; ++n) {
+    			string filename = "rn_image" + to_string(n) + ".npy";
+			auto image_psf = xt::load_npy<double> (filename);
 			
-    			xt::xarray<double> best_PSFs_ref = BinaryRelativeFlux(array_of_PSFs, secondary_coordinates, image_psf, flux, sqrt_weights, best_primary, best_secondary);
-    			best_primary = best_PSFs_ref(0);
-    			best_secondary = best_PSFs_ref(1);
-    			best_RF = best_PSFs_ref(2);
-    			
-			flux = BinaryFit(array_of_PSFs(best_primary), array_of_PSFs(best_secondary), secondary_coordinates, image_psf, base, w, best_RF);
-    			++iteration ;
-    		}
-    		
-    		xt::xarray<double> primary_PSF = array_of_PSFs(best_primary);
-    		xt::xarray<double> secondary_PSF = array_of_PSFs(best_secondary);
+	    		xt::xarray<int> secondary = xt::row(coordinates, i);
+	    		secondary_coordinates(0) = secondary(0) - center(0) + 2;
+	    		secondary_coordinates(1) = secondary(1) - center(1) + 2;
+	    		
+	    		xt::xarray<xt::xarray<double>> w_array = BinaryBase(primary_coordinates, secondary_coordinates);
+			xt::xarray<double> w = w_array(0);
+			xt::xarray<int> w1 = w_array(1);
+			xt::xarray<int> w2 = w_array(2);
+			auto sqrt_weights = xt::sqrt(xt::abs(image_psf));
+			
+	    		int iteration = 0;
+	    		int best_primary = 0;
+	    		int best_secondary = 0;
+	    		double best_RF = 0.0;
+	    		double base = xt::sum(w * image_psf, xt::evaluation_strategy::immediate)(0);
+	    		
+	    		double comp = 0;
+	    		double flux = base * 1;
+	    		
+	    		while (abs(comp - flux) > .000001 && iteration < 10) {
+	    			comp = flux;
+	    			xt::xarray<int> best_PSFs =  BinaryPSF(array_of_PSFs, secondary_coordinates, image_psf, flux, sqrt_weights);
+	    			best_primary = best_PSFs(0);
+	    			best_secondary = best_PSFs(1);
+				
+	    			xt::xarray<double> best_PSFs_ref = BinaryRelativeFlux(array_of_PSFs, secondary_coordinates, image_psf, flux, sqrt_weights, best_primary, best_secondary);
+	    			best_primary = best_PSFs_ref(0);
+	    			best_secondary = best_PSFs_ref(1);
+	    			best_RF = best_PSFs_ref(2);
+	    			
+				flux = BinaryFit(array_of_PSFs(best_primary), array_of_PSFs(best_secondary), secondary_coordinates, image_psf, base, w, best_RF);
+	    			++iteration ;
+	    		}
+	    		
+	    		xt::xarray<double> primary_PSF = array_of_PSFs(best_primary);
+	    		xt::xarray<double> secondary_PSF = array_of_PSFs(best_secondary);
 
-    		double comp_primary = 1.0;
-    		double comp_secondary = 1.0;
-    		double flux_primary = 2.0;
+	    		double comp_primary = 1.0;
+	    		double comp_secondary = 1.0;
+	    		double flux_primary = 2.0;
+	    		double flux_secondary = SecondaryBinaryFit(primary_PSF, secondary_PSF, secondary_coordinates, w2, image_psf, flux, best_RF);
 
-    		double flux_secondary = SecondaryBinaryFit(primary_PSF, secondary_PSF, secondary_coordinates, w2, image_psf, flux, best_RF);
+	    		iteration = 0;
+	    		
+			while (abs(comp_primary - flux_primary) > .000001 && abs(comp_secondary - flux_secondary) > .000001) {
+				comp_primary = flux_primary;
+				comp_secondary = flux_secondary;
+				if (iteration >= 10) {
+					break;
+				}
 
-    		iteration = 0;
-    		
-    		//Final WHILE LOOP 
-		while (abs(comp_primary - flux_primary) > .000001 && abs(comp_secondary - flux_secondary) > .000001) {
-			comp_primary = flux_primary;
-			comp_secondary = flux_secondary;
-			if (iteration >= 10) {
-				break;
+				flux_primary = RelativeFluxes(primary_PSF, primary_coordinates, secondary_PSF, secondary_coordinates, w1, image_psf, base, flux_secondary);
+				flux_secondary = RelativeFluxes(secondary_PSF, secondary_coordinates, primary_PSF, primary_coordinates, w2, image_psf, base, flux_primary);
+				++iteration;
 			}
-			//CREATE rfpsf FUNCTION
-			flux_primary = RelativeFluxes(primary_PSF, primary_coordinates, secondary_PSF, secondary_coordinates, w1, image_psf, base, flux_secondary);
-			flux_secondary = RelativeFluxes(secondary_PSF, secondary_coordinates, primary_PSF, primary_coordinates, w2, image_psf, base, flux_primary);
-			++iteration;
+			
+			primary_fluxes.push_back(flux_primary);
+			secondary_fluxes.push_back(flux_secondary);
+			
+			int cx = (primary_PSF.shape()[1] - 1) * .5;
+			int cy = (primary_PSF.shape()[0] - 1) * .5;
+			
+			int P_rangeY_1 = cy - primary_coordinates(0);
+			int P_rangeY_2 = cy - primary_coordinates(0) + 5;
+			int P_rangeX_1 = cx - primary_coordinates(1);
+			int P_rangeX_2 = cx - primary_coordinates(1) + 5;
+			
+			int S_rangeY_1 = cy - secondary_coordinates(0);
+			int S_rangeY_2 = cy - secondary_coordinates(0) + 5;
+			int S_rangeX_1 = cx - secondary_coordinates(1);
+			int S_rangeX_2 = cx - secondary_coordinates(1) + 5;
+		
+			xt::xarray<double> PSF1 = (xt::view(primary_PSF, xt::range(P_rangeY_1, P_rangeY_2), xt::range(P_rangeX_1, P_rangeX_2)));
+			xt::xarray<double> PSF2 = (xt::view(secondary_PSF, xt::range(S_rangeY_1, S_rangeY_2), xt::range(S_rangeX_1, S_rangeX_2)));
+
+			auto PSF_sum = PSF1 * flux_primary + PSF2 * flux_secondary;
+			auto pre_residual = xt::abs(image_psf - PSF_sum);
+			auto residual = xt::sum(w * pre_residual, xt::evaluation_strategy::immediate)(0);
+			auto residual_error = residual / xt::sum(w, xt::evaluation_strategy::immediate)(0);
+			
+			//append each variable to a vector of that variable
+			residual_error_vector(n) = residual_error;
+			best_primary_vector(n) = best_primary;
+			flux_primary_vector(n) = flux_primary;
+			best_secondary_vector(n) = best_secondary;
+			flux_secondary_vector(n) = flux_secondary;
+			flux_sum_vector(n) = flux_primary + flux_secondary;
 		}
 		
-		int cx = (primary_PSF.shape()[1] - 1) * .5;
-		int cy = (primary_PSF.shape()[0] - 1) * .5;
+		xt::xarray<double> xt_primary_fluxes = xt::adapt(primary_fluxes, {size});
+		xt::xarray<double> xt_secondary_fluxes = xt::adapt(secondary_fluxes, {size});
 		
-		int P_rangeY_1 = cy - primary_coordinates(0);
-		int P_rangeY_2 = cy - primary_coordinates(0) + 5;
-		int P_rangeX_1 = cx - primary_coordinates(1);
-		int P_rangeX_2 = cx - primary_coordinates(1) + 5;
+		string primary_file = "primary_fluxes" + to_string(i) + ".npy";
+		string secondary_file = "secondary_fluxes" + to_string(i) + ".npy";
+		xt::dump_npy(primary_file, xt_primary_fluxes);
+		xt::dump_npy(primary_file, xt_secondary_fluxes);
 		
-		int S_rangeY_1 = cy - secondary_coordinates(0);
-		int S_rangeY_2 = cy - secondary_coordinates(0) + 5;
-		int S_rangeX_1 = cx - secondary_coordinates(1);
-		int S_rangeX_2 = cx - secondary_coordinates(1) + 5;
+		xt::dump_npy("residual_error_array_max_" + to_string(i) + ".npy", residual_error_vector);
+		xt::dump_npy("best_primary_array_max_" + to_string(i) + ".npy", best_primary_vector);
+		xt::dump_npy("flux_primary_array_max_" + to_string(i) + ".npy", flux_primary_vector);
+		xt::dump_npy("best_secondary_array_max_" + to_string(i) + ".npy", best_secondary_vector);
+		xt::dump_npy("flux_secondary_array_max_" + to_string(i) + ".npy", flux_secondary_vector);
+		xt::dump_npy("flux_sum_array_max_" + to_string(i) + ".npy", flux_sum_vector);
+    	}	
+		xt::xarray<int> center_array = {{center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}};
+	    	xt::xarray<int> secondary_array = coordinates;
+	    	xt::dump_npy("center_array_max.npy", center_array);
+	    	xt::dump_npy("secondary_array_max.npy", secondary_array);
 	
-		xt::xarray<double> PSF1 = (xt::view(primary_PSF, xt::range(P_rangeY_1, P_rangeY_2), xt::range(P_rangeX_1, P_rangeX_2)));
-		xt::xarray<double> PSF2 = (xt::view(secondary_PSF, xt::range(S_rangeY_1, S_rangeY_2), xt::range(S_rangeX_1, S_rangeX_2)));
-
-		auto PSF_sum = PSF1 * flux_primary + PSF2 * flux_secondary;
-		auto pre_residual = xt::abs(image_psf - PSF_sum);
-		auto residual = xt::sum(w * pre_residual, xt::evaluation_strategy::immediate)(0);
-		auto residual_error = residual / xt::sum(w, xt::evaluation_strategy::immediate)(0);
-		
-		cout << "psf1: " << best_primary << " flux1: " << flux_primary << " psf2: " << best_secondary << " flux2: " << flux_secondary << " error: " << residual_error << endl;
-		//append each variable to a vector of that variable
-		residual_error_array(i) = residual_error;
-		best_primary_array(i) = best_primary;
-		flux_primary_array(i) = flux_primary;
-		best_secondary_array(i) = best_secondary;
-		flux_secondary_array(i) = flux_secondary;
-		flux_sum_array(i) = flux_primary + flux_secondary;
-    	}
-	
-	cout << endl;
-    	xt::xarray<int> center_array = {{center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}};
-    	xt::xarray<int> secondary_array = coordinates;
-    	
-    	//send the "outputs" as seperate files since they are different data types and we can read them all in to python for the calculation of angles and separation - it only takes a second :)
-    	xt::dump_npy("residual_error_array.npy", residual_error_array);
-    	xt::dump_npy("center_array.npy", center_array);
-    	xt::dump_npy("secondary_array.npy", secondary_array);
-	xt::dump_npy("best_primary_array.npy", best_primary_array);
-	xt::dump_npy("flux_primary_array.npy", flux_primary_array);
-	xt::dump_npy("best_secondary_array.npy", best_secondary_array);
-	xt::dump_npy("flux_secondary_array.npy", flux_secondary_array);
-	xt::dump_npy("flux_sum_array.npy", flux_sum_array);
-    	
 	return 0;
 }

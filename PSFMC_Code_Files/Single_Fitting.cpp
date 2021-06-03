@@ -91,14 +91,12 @@ int main()
     	}
 	
 	double base = xt::sum(image_psf,{0,1}, xt::evaluation_strategy::immediate)(0);
-	//auto weights = xt::sqrt(xt::abs(image_psf));
 	xt::xarray<double> weights
 	{{0,0,0,0,0},
 	 {0,1,1,1,0},
 	 {0,1,1,1,0},
 	 {0,1,1,1,0},
 	 {0,0,0,0,0}}; 
-	 
 	auto sqrt_weights = xt::sqrt(xt::abs(image_psf));
 	double flux = base * 1;
 	int iteration = 0;

@@ -340,9 +340,6 @@ double RelativeFluxes(xt::xarray<double> PSF_1, xt::xarray<int> coordinates_1, x
 //MAIN 
 int main() 
 {
-	//read in the image and model data, and the parameters we set earlier
-	xt::xarray<double> image_psf = xt::load_npy<double>("image_psf.npy");
-
 	int array_length = 100;
 	xt::xarray<xt::xarray<double>> array_of_PSFs = xt::zeros<xt::xarray<double>>({array_length});
     	for (int i = 1; i <= array_length; ++i) {
@@ -357,119 +354,250 @@ int main()
     	xt::xarray<int> primary_coordinates = {2,2};
     	xt::xarray<int> secondary_coordinates = xt::zeros<double>({2});
     	
-    	//arrays to store the output values
-    	xt::xarray<double> residual_error_array = xt::zeros<double>({coordinates.shape()[0]});
-	xt::xarray<int> best_primary_array = xt::zeros<int>({coordinates.shape()[0]});
-	xt::xarray<double> flux_primary_array = xt::zeros<double>({coordinates.shape()[0]});
-	xt::xarray<int> best_secondary_array = xt::zeros<int>({coordinates.shape()[0]});
-	xt::xarray<double> flux_secondary_array = xt::zeros<double>({coordinates.shape()[0]});
-	xt::xarray<double> flux_sum_array = xt::zeros<double>({coordinates.shape()[0]});
+    	//vectors to store the output values (one set for each of the 9 binary fits)
+    	vector<double> primary_fluxes;
+    	vector<double> secondary_fluxes;
     	
-    	//do the binary fit
-    	cout << "Beginning Binary Fit" << endl;
-    	for (int i = 0; i < coordinates.shape()[0]; ++i) {
-    		xt::xarray<int> secondary = xt::row(coordinates, i);
-    		secondary_coordinates(0) = secondary(0) - center(0) + 2;
-    		secondary_coordinates(1) = secondary(1) - center(1) + 2;
-    		
-    		xt::xarray<xt::xarray<double>> w_array = BinaryBase(primary_coordinates, secondary_coordinates);
-		xt::xarray<double> w = w_array(0);
-		xt::xarray<int> w1 = w_array(1);
-		xt::xarray<int> w2 = w_array(2);
-		auto sqrt_weights = xt::sqrt(xt::abs(image_psf));
-		
-    		int iteration = 0;
-    		int best_primary = 0;
-    		int best_secondary = 0;
-    		double best_RF = 0.0;
-    		double base = xt::sum(w * image_psf, xt::evaluation_strategy::immediate)(0);
-    		
-    		double comp = 0;
-    		double flux = base * 1;
-    		
-    		while (abs(comp - flux) > .000001 && iteration < 10) {
-    			comp = flux;
-    			xt::xarray<int> best_PSFs =  BinaryPSF(array_of_PSFs, secondary_coordinates, image_psf, flux, sqrt_weights);
-    			best_primary = best_PSFs(0);
-    			best_secondary = best_PSFs(1);
+	vector<double> primary_flux_distribution1;
+	vector<double> secondary_flux_distribution1;
+	vector<double> sum_flux_distribution1;
+	
+	vector<double> primary_flux_distribution2;
+	vector<double> secondary_flux_distribution2;
+	vector<double> sum_flux_distribution2;
+	
+	vector<double> primary_flux_distribution3;
+	vector<double> secondary_flux_distribution3;
+	vector<double> sum_flux_distribution3;
+	
+	vector<double> primary_flux_distribution4;
+	vector<double> secondary_flux_distribution4;
+	vector<double> sum_flux_distribution4;
+	
+	vector<double> primary_flux_distribution5;
+	vector<double> secondary_flux_distribution5;
+	vector<double> sum_flux_distribution5;
+	
+	vector<double> primary_flux_distribution6;
+	vector<double> secondary_flux_distribution6;
+	vector<double> sum_flux_distribution6;
+	
+	vector<double> primary_flux_distribution7;
+	vector<double> secondary_flux_distribution7;
+	vector<double> sum_flux_distribution7;
+	
+	vector<double> primary_flux_distribution8;
+	vector<double> secondary_flux_distribution8;
+	vector<double> sum_flux_distribution8;
+	
+	vector<double> primary_flux_distribution9;
+	vector<double> secondary_flux_distribution9;
+	vector<double> sum_flux_distribution9;
+    	
+    	
+    	int iter = 0;
+    	int iter2 = 0;
+    	#pragma omp parallel for
+    	for (int n = 0; n < 100; ++n) { 
+		string filename = "rn_image" + to_string(n) + ".npy";
+		auto image_psf = xt::load_npy<double> (filename);
+	    	
+	    	//do the binary fit
+	    	iter2 = 0;
+	    	for (int i = 0; i < coordinates.shape()[0]; ++i) {
+	    		xt::xarray<int> secondary = xt::row(coordinates, i);
+	    		secondary_coordinates(0) = secondary(0) - center(0) + 2;
+	    		secondary_coordinates(1) = secondary(1) - center(1) + 2;
+	    		
+	    		xt::xarray<xt::xarray<double>> w_array = BinaryBase(primary_coordinates, secondary_coordinates);
+			xt::xarray<double> w = w_array(0);
+			xt::xarray<int> w1 = w_array(1);
+			xt::xarray<int> w2 = w_array(2);
+			auto sqrt_weights = xt::sqrt(xt::abs(image_psf));
 			
-    			xt::xarray<double> best_PSFs_ref = BinaryRelativeFlux(array_of_PSFs, secondary_coordinates, image_psf, flux, sqrt_weights, best_primary, best_secondary);
-    			best_primary = best_PSFs_ref(0);
-    			best_secondary = best_PSFs_ref(1);
-    			best_RF = best_PSFs_ref(2);
-    			
-			flux = BinaryFit(array_of_PSFs(best_primary), array_of_PSFs(best_secondary), secondary_coordinates, image_psf, base, w, best_RF);
-    			++iteration ;
-    		}
-    		
-    		xt::xarray<double> primary_PSF = array_of_PSFs(best_primary);
-    		xt::xarray<double> secondary_PSF = array_of_PSFs(best_secondary);
+	    		int iteration = 0;
+	    		int best_primary = 0;
+	    		int best_secondary = 0;
+	    		double best_RF = 0.0;
+	    		double base = xt::sum(w * image_psf, xt::evaluation_strategy::immediate)(0);
+	    		
+	    		double comp = 0;
+	    		double flux = base * 1;
+	    		
+	    		while (abs(comp - flux) > .000001 && iteration < 10) {
+	    			comp = flux;
+	    			xt::xarray<int> best_PSFs =  BinaryPSF(array_of_PSFs, secondary_coordinates, image_psf, flux, sqrt_weights);
+	    			best_primary = best_PSFs(0);
+	    			best_secondary = best_PSFs(1);
+				
+	    			xt::xarray<double> best_PSFs_ref = BinaryRelativeFlux(array_of_PSFs, secondary_coordinates, image_psf, flux, sqrt_weights, best_primary, best_secondary);
+	    			best_primary = best_PSFs_ref(0);
+	    			best_secondary = best_PSFs_ref(1);
+	    			best_RF = best_PSFs_ref(2);
+	    			
+				flux = BinaryFit(array_of_PSFs(best_primary), array_of_PSFs(best_secondary), secondary_coordinates, image_psf, base, w, best_RF);
+	    			++iteration ;
+	    		}
+	    		
+	    		xt::xarray<double> primary_PSF = array_of_PSFs(best_primary);
+	    		xt::xarray<double> secondary_PSF = array_of_PSFs(best_secondary);
 
-    		double comp_primary = 1.0;
-    		double comp_secondary = 1.0;
-    		double flux_primary = 2.0;
+	    		double comp_primary = 1.0;
+	    		double comp_secondary = 1.0;
+	    		double flux_primary = 2.0;
 
-    		double flux_secondary = SecondaryBinaryFit(primary_PSF, secondary_PSF, secondary_coordinates, w2, image_psf, flux, best_RF);
+	    		double flux_secondary = SecondaryBinaryFit(primary_PSF, secondary_PSF, secondary_coordinates, w2, image_psf, flux, best_RF);
 
-    		iteration = 0;
-    		
-    		//Final WHILE LOOP 
-		while (abs(comp_primary - flux_primary) > .000001 && abs(comp_secondary - flux_secondary) > .000001) {
-			comp_primary = flux_primary;
-			comp_secondary = flux_secondary;
-			if (iteration >= 10) {
-				break;
+	    		iteration = 0;
+	    		
+	    		//Final WHILE LOOP 
+			while (abs(comp_primary - flux_primary) > .000001 && abs(comp_secondary - flux_secondary) > .000001) {
+				comp_primary = flux_primary;
+				comp_secondary = flux_secondary;
+				if (iteration >= 10) {
+					break;
+
+				}
+				
+				flux_primary = RelativeFluxes(primary_PSF, primary_coordinates, secondary_PSF, secondary_coordinates, w1, image_psf, base, flux_secondary);
+				flux_secondary = RelativeFluxes(secondary_PSF, secondary_coordinates, primary_PSF, primary_coordinates, w2, image_psf, base, flux_primary);
+				++iteration;
 			}
-			//CREATE rfpsf FUNCTION
-			flux_primary = RelativeFluxes(primary_PSF, primary_coordinates, secondary_PSF, secondary_coordinates, w1, image_psf, base, flux_secondary);
-			flux_secondary = RelativeFluxes(secondary_PSF, secondary_coordinates, primary_PSF, primary_coordinates, w2, image_psf, base, flux_primary);
-			++iteration;
-		}
-		
-		int cx = (primary_PSF.shape()[1] - 1) * .5;
-		int cy = (primary_PSF.shape()[0] - 1) * .5;
-		
-		int P_rangeY_1 = cy - primary_coordinates(0);
-		int P_rangeY_2 = cy - primary_coordinates(0) + 5;
-		int P_rangeX_1 = cx - primary_coordinates(1);
-		int P_rangeX_2 = cx - primary_coordinates(1) + 5;
-		
-		int S_rangeY_1 = cy - secondary_coordinates(0);
-		int S_rangeY_2 = cy - secondary_coordinates(0) + 5;
-		int S_rangeX_1 = cx - secondary_coordinates(1);
-		int S_rangeX_2 = cx - secondary_coordinates(1) + 5;
+			
+			double sum_flux = flux_primary + flux_secondary;
+			primary_fluxes.push_back(flux_primary);
+			secondary_fluxes.push_back(flux_secondary);
+			if (i == 0) {
+				primary_flux_distribution1.push_back(flux_primary);
+				secondary_flux_distribution1.push_back(flux_secondary);
+				sum_flux_distribution1.push_back(sum_flux);
+			}
+			else if (i == 1) {
+				primary_flux_distribution2.push_back(flux_primary);
+				secondary_flux_distribution2.push_back(flux_secondary);
+				sum_flux_distribution2.push_back(sum_flux);
+			}
+			else if (i == 2) {
+				primary_flux_distribution3.push_back(flux_primary);
+				secondary_flux_distribution3.push_back(flux_secondary);
+				sum_flux_distribution3.push_back(sum_flux);
+			}
+			else if (i == 3) {
+				primary_flux_distribution4.push_back(flux_primary);
+				secondary_flux_distribution4.push_back(flux_secondary);
+				sum_flux_distribution4.push_back(sum_flux);
+			}
+			else if (i == 4) {
+				primary_flux_distribution5.push_back(flux_primary);
+				secondary_flux_distribution5.push_back(flux_secondary);
+				sum_flux_distribution5.push_back(sum_flux);
+			}
+			else if (i == 5) {
+				primary_flux_distribution6.push_back(flux_primary);
+				secondary_flux_distribution6.push_back(flux_secondary);
+				sum_flux_distribution6.push_back(sum_flux);
+			}
+			else if (i == 6) {
+				primary_flux_distribution7.push_back(flux_primary);
+				secondary_flux_distribution7.push_back(flux_secondary);
+				sum_flux_distribution7.push_back(sum_flux);
+			}
+			else if (i == 7) {
+				primary_flux_distribution8.push_back(flux_primary);
+				secondary_flux_distribution8.push_back(flux_secondary);
+				sum_flux_distribution8.push_back(sum_flux);
+			}
+			else if (i == 8) {
+				primary_flux_distribution9.push_back(flux_primary);
+				secondary_flux_distribution9.push_back(flux_secondary);
+				sum_flux_distribution9.push_back(sum_flux);
+			}
+			
+			++iter2;
+	    	}
+	    	++iter;
+	}
 	
-		xt::xarray<double> PSF1 = (xt::view(primary_PSF, xt::range(P_rangeY_1, P_rangeY_2), xt::range(P_rangeX_1, P_rangeX_2)));
-		xt::xarray<double> PSF2 = (xt::view(secondary_PSF, xt::range(S_rangeY_1, S_rangeY_2), xt::range(S_rangeX_1, S_rangeX_2)));
+	int size = 900;
+	xt::xarray<double> xt_primary_fluxes = xt::adapt(primary_fluxes, {size});
+	xt::xarray<double> xt_secondary_fluxes = xt::adapt(secondary_fluxes, {size});
+	
+	xt::dump_npy("primary_fluxes.npy", xt_primary_fluxes);
+	xt::dump_npy("secondary_fluxes.npy", xt_secondary_fluxes);
+	
+	xt::xarray<double> primary_fluxes1 = xt::adapt(primary_flux_distribution1,{size});
+	xt::xarray<double> secondary_fluxes1 = xt::adapt(secondary_flux_distribution1,{size});
+	xt::xarray<double> sum_fluxes1 = xt::adapt(sum_flux_distribution1,{size});
+	
+	xt::xarray<double> primary_fluxes2 = xt::adapt(primary_flux_distribution2,{size});
+	xt::xarray<double> secondary_fluxes2 = xt::adapt(secondary_flux_distribution2,{size});
+	xt::xarray<double> sum_fluxes2 = xt::adapt(sum_flux_distribution2,{size});
+	
+	xt::xarray<double> primary_fluxes3 = xt::adapt(primary_flux_distribution3,{size});
+	xt::xarray<double> secondary_fluxes3 = xt::adapt(secondary_flux_distribution3,{size});
+	xt::xarray<double> sum_fluxes3 = xt::adapt(sum_flux_distribution3,{size});
+	
+	xt::xarray<double> primary_fluxes4 = xt::adapt(primary_flux_distribution4,{size});
+	xt::xarray<double> secondary_fluxes4 = xt::adapt(secondary_flux_distribution4,{size});
+	xt::xarray<double> sum_fluxes4 = xt::adapt(sum_flux_distribution4,{size});
+	
+	xt::xarray<double> primary_fluxes5 = xt::adapt(primary_flux_distribution5,{size});
+	xt::xarray<double> secondary_fluxes5 = xt::adapt(secondary_flux_distribution5,{size});
+	xt::xarray<double> sum_fluxes5 = xt::adapt(sum_flux_distribution5,{size});
+	
+	xt::xarray<double> primary_fluxes6 = xt::adapt(primary_flux_distribution6,{size});
+	xt::xarray<double> secondary_fluxes6 = xt::adapt(secondary_flux_distribution6,{size});
+	xt::xarray<double> sum_fluxes6 = xt::adapt(sum_flux_distribution6,{size});
+	
+	xt::xarray<double> primary_fluxes7 = xt::adapt(primary_flux_distribution7,{size});
+	xt::xarray<double> secondary_fluxes7 = xt::adapt(secondary_flux_distribution7,{size});
+	xt::xarray<double> sum_fluxes7 = xt::adapt(sum_flux_distribution7,{size});
+	
+	xt::xarray<double> primary_fluxes8 = xt::adapt(primary_flux_distribution8,{size});
+	xt::xarray<double> secondary_fluxes8 = xt::adapt(secondary_flux_distribution8,{size});
+	xt::xarray<double> sum_fluxes8 = xt::adapt(sum_flux_distribution8,{size});
+	
+	xt::xarray<double> primary_fluxes9 = xt::adapt(primary_flux_distribution9,{size});
+	xt::xarray<double> secondary_fluxes9 = xt::adapt(secondary_flux_distribution9,{size});
+	xt::xarray<double> sum_fluxes9 = xt::adapt(sum_flux_distribution9,{size});
 
-		auto PSF_sum = PSF1 * flux_primary + PSF2 * flux_secondary;
-		auto pre_residual = xt::abs(image_psf - PSF_sum);
-		auto residual = xt::sum(w * pre_residual, xt::evaluation_strategy::immediate)(0);
-		auto residual_error = residual / xt::sum(w, xt::evaluation_strategy::immediate)(0);
-		
-		cout << "psf1: " << best_primary << " flux1: " << flux_primary << " psf2: " << best_secondary << " flux2: " << flux_secondary << " error: " << residual_error << endl;
-		//append each variable to a vector of that variable
-		residual_error_array(i) = residual_error;
-		best_primary_array(i) = best_primary;
-		flux_primary_array(i) = flux_primary;
-		best_secondary_array(i) = best_secondary;
-		flux_secondary_array(i) = flux_secondary;
-		flux_sum_array(i) = flux_primary + flux_secondary;
-    	}
 	
-	cout << endl;
-    	xt::xarray<int> center_array = {{center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}, {center(0), center(1)}};
-    	xt::xarray<int> secondary_array = coordinates;
-    	
-    	//send the "outputs" as seperate files since they are different data types and we can read them all in to python for the calculation of angles and separation - it only takes a second :)
-    	xt::dump_npy("residual_error_array.npy", residual_error_array);
-    	xt::dump_npy("center_array.npy", center_array);
-    	xt::dump_npy("secondary_array.npy", secondary_array);
-	xt::dump_npy("best_primary_array.npy", best_primary_array);
-	xt::dump_npy("flux_primary_array.npy", flux_primary_array);
-	xt::dump_npy("best_secondary_array.npy", best_secondary_array);
-	xt::dump_npy("flux_secondary_array.npy", flux_secondary_array);
-	xt::dump_npy("flux_sum_array.npy", flux_sum_array);
-    	
+	xt::dump_npy("primary_fluxes1.npy", primary_fluxes1);
+	xt::dump_npy("secondary_fluxes1.npy", secondary_fluxes1);
+	xt::dump_npy("sum_fluxes1.npy", sum_fluxes1);
+	
+	xt::dump_npy("primary_fluxes2.npy", primary_fluxes2);
+	xt::dump_npy("secondary_fluxes2.npy", secondary_fluxes2);
+	xt::dump_npy("sum_fluxes2.npy", sum_fluxes2);
+	
+	xt::dump_npy("primary_fluxes3.npy", primary_fluxes3);
+	xt::dump_npy("secondary_fluxes3.npy", secondary_fluxes3);
+	xt::dump_npy("sum_fluxes3.npy", sum_fluxes3);
+	
+	xt::dump_npy("primary_fluxes4.npy", primary_fluxes4);
+	xt::dump_npy("secondary_fluxes4.npy", secondary_fluxes4);
+	xt::dump_npy("sum_fluxes4.npy", sum_fluxes4);
+	
+	xt::dump_npy("primary_fluxes5.npy", primary_fluxes5);
+	xt::dump_npy("secondary_fluxes5.npy", secondary_fluxes5);
+	xt::dump_npy("sum_fluxes5.npy", sum_fluxes5);
+	
+	xt::dump_npy("primary_fluxes6.npy", primary_fluxes6);
+	xt::dump_npy("secondary_fluxes6.npy", secondary_fluxes6);
+	xt::dump_npy("sum_fluxes6.npy", sum_fluxes6);
+	
+	xt::dump_npy("primary_fluxes7.npy", primary_fluxes7);
+	xt::dump_npy("secondary_fluxes7.npy", secondary_fluxes7);
+	xt::dump_npy("sum_fluxes7.npy", sum_fluxes7);
+	
+	xt::dump_npy("primary_fluxes8.npy", primary_fluxes8);
+	xt::dump_npy("secondary_fluxes8.npy", secondary_fluxes8);
+	xt::dump_npy("sum_fluxes8.npy", sum_fluxes8);
+	
+	xt::dump_npy("primary_fluxes9.npy", primary_fluxes9);
+	xt::dump_npy("secondary_fluxes9.npy", secondary_fluxes9);
+	xt::dump_npy("sum_fluxes9.npy", sum_fluxes9);
+	
+	
 	return 0;
 }
